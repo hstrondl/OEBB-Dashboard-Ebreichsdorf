@@ -1,0 +1,739 @@
+
+
+<!doctype html>
+
+<html lang="de">
+
+<head>
+
+<meta charset="utf-8">
+
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<meta name="theme-color" content="#101e33">
+
+<title>Mein ÖBB Morgenmonitor</title>
+
+<style>
+
+:root {
+
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+
+  color:#edf4ff;
+
+  background:#0c1728;
+
+}
+
+* { box-sizing:border-box; }
+
+body { margin:0; padding:clamp(15px,3vw,36px); }
+
+main { max-width:1100px; margin:auto; }
+
+header {
+
+  display:flex;
+
+  justify-content:space-between;
+
+  align-items:start;
+
+  gap:12px;
+
+}
+
+h1 { font-size:clamp(27px,4.5vw,48px); margin:7px 0; }
+
+p { color:#b7c9de; }
+
+small { color:#a8bcd4; }
+
+.pill {
+
+  display:inline-block;
+
+  padding:7px 12px;
+
+  border-radius:99px;
+
+  background:#243b56;
+
+  color:#dceaff;
+
+  font-size:13px;
+
+}
+
+.controls {
+
+  display:flex;
+
+  flex-wrap:wrap;
+
+  gap:9px;
+
+  margin:20px 0;
+
+}
+
+button {
+
+  background:#e9f3ff;
+
+  color:#12243b;
+
+  border:0;
+
+  border-radius:10px;
+
+  padding:12px 15px;
+
+  font-weight:700;
+
+  font-size:15px;
+
+  cursor:pointer;
+
+}
+
+button.secondary { background:#233a55; color:#edf4ff; }
+
+button.active { outline:2px solid #82b8ff; }
+
+.info {
+
+  border-radius:12px;
+
+  padding:14px 17px;
+
+  background:#1c3049;
+
+  color:#d8e8fa;
+
+  margin:12px 0;
+
+}
+
+.info.warn { background:#4a351a; color:#ffdb98; }
+
+.info.err { background:#4b2430; color:#ffbecb; }
+
+.list { display:grid; gap:12px; margin:20px 0; }
+
+.train {
+
+  background:#172a42;
+
+  border:1px solid #324863;
+
+  border-radius:16px;
+
+  padding:18px;
+
+  display:grid;
+
+  grid-template-columns:minmax(100px,1fr) minmax(130px,1fr) auto;
+
+  gap:15px;
+
+  align-items:center;
+
+}
+
+.time {
+
+  font-size:clamp(25px,4vw,40px);
+
+  font-weight:800;
+
+  font-variant-numeric:tabular-nums;
+
+}
+
+.sub { color:#acc1d8; font-size:14px; margin-top:4px; }
+
+.status {
+
+  font-weight:800;
+
+  border-radius:10px;
+
+  padding:10px 12px;
+
+  white-space:nowrap;
+
+}
+
+.ok { background:#153e32; color:#75e7a4; }
+
+.late { background:#514019; color:#ffd46d; }
+
+.cancel { background:#532633; color:#ff9fae; }
+
+.unknown { background:#304157; color:#c8d8e9; }
+
+.line { font-weight:750; color:#d7e8fc; }
+
+.footer {
+
+  font-size:13px;
+
+  color:#a8bcd4;
+
+  margin-top:25px;
+
+  line-height:1.6;
+
+}
+
+a { color:#a5ceff; }
+
+@media(max-width:640px) {
+
+  .train { grid-template-columns:1fr auto; }
+
+  .train .middle { grid-column:1; grid-row:2; }
+
+  .train .status { grid-column:2; grid-row:1 / span 2; }
+
+  .time { font-size:30px; }
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<main>
+
+<header>
+
+  <div>
+
+    <span class="pill">MEIN MORGEN-CHECK · MO–FR · 07:00–08:00</span>
+
+    <h1>Ebreichsdorf → Wien Meidling</h1>
+
+    <p>Alle planmäßigen Abfahrten im Zeitfenster – auch bereits vergangene, sofern vom Datenanbieter geliefert oder zuvor gespeichert.</p>
+
+  </div>
+
+  <div style="font-size:38px">🚆</div>
+
+</header>
+
+<div class="controls">
+
+  <button id="demo" class="active">Demo anzeigen</button>
+
+  <button id="live" class="secondary">Live-Daten versuchen</button>
+
+  <button id="reload" class="secondary">↻ Aktualisieren</button>
+
+</div>
+
+<div id="message" class="info warn" role="status">
+
+  DEMO-MODUS: Beispielzüge, keine echten Fahrplandaten.
+
+</div>
+
+<div class="info">
+
+  <strong id="date"></strong> ·
+
+  <span id="updated">Noch keine Live-Aktualisierung</span>
+
+  <br>
+
+  <small>Live-Abfrage alle 60 Sekunden bei geöffneter Seite. Vergangene Einträge bleiben erhalten, wenn sie einmal erfolgreich geladen wurden.</small>
+
+</div>
+
+<section class="list" id="list" aria-label="Zugverbindungen"></section>
+
+<div class="footer">
+
+  Datenquelle im Live-Modus:
+
+  <a href="https://v6.oebb.transport.rest/" target="_blank">
+
+    oebb.transport.rest
+
+  </a>
+
+  (unabhängiger Drittanbieter, keine offizielle ÖBB-API).
+
+  Verfügbarkeit und Vollständigkeit sind nicht garantiert.
+
+  Fehlende Echtzeitinformationen werden nicht als pünktlich gewertet.
+
+  Vor Fahrtantritt
+
+  <a href="https://fahrplan.oebb.at/" target="_blank">ÖBB Scotty</a>
+
+  prüfen.
+
+</div>
+
+</main>
+
+<script>
+
+'use strict';
+
+const API = 'https://v6.oebb.transport.rest/api';
+
+const ORIGIN = 'Ebreichsdorf';
+
+const DEST = 'Wien Meidling';
+
+const $ = id => document.getElementById(id);
+
+let mode = 'demo';
+
+let timer = null;
+
+let cache = new Map();
+
+const dateFmt = new Intl.DateTimeFormat('sv-SE', {
+
+  timeZone:'Europe/Vienna',
+
+  year:'numeric', month:'2-digit', day:'2-digit'
+
+});
+
+const timeFmt = new Intl.DateTimeFormat('de-AT', {
+
+  timeZone:'Europe/Vienna',
+
+  hour:'2-digit', minute:'2-digit', hour12:false
+
+});
+
+const day = () => dateFmt.format(new Date());
+
+const hm = iso => iso ? timeFmt.format(new Date(iso)) : '—';
+
+function mins(iso) {
+
+  if (!iso) return -1;
+
+  const a = hm(iso).split(':').map(Number);
+
+  return a[0]*60+a[1];
+
+}
+
+function escapeHtml(s) {
+
+  return String(s ?? '').replace(/[&<>"']/g, c => ({
+
+    '&':'&amp;', '<':'&lt;', '>':'&gt;',
+
+    '"':'&quot;', "'":'&#39;'
+
+  }[c]));
+
+}
+
+function setMsg(t, type='info') {
+
+  $('message').className = 'info ' + type;
+
+  $('message').textContent = t;
+
+}
+
+function switchMode(next) {
+
+  mode = next;
+
+  $('demo').className = next === 'demo' ? 'active' : 'secondary';
+
+  $('live').className = next === 'live' ? 'active' : 'secondary';
+
+  if (timer) clearInterval(timer);
+
+  timer = null;
+
+  if (next === 'demo') {
+
+    renderDemo();
+
+  } else {
+
+    loadLive();
+
+    timer = setInterval(loadLive, 60000);
+
+  }
+
+}
+
+function render(rows) {
+
+  $('date').textContent = new Intl.DateTimeFormat('de-AT', {
+
+    timeZone:'Europe/Vienna',
+
+    weekday:'long', day:'2-digit',
+
+    month:'long', year:'numeric'
+
+  }).format(new Date());
+
+  $('list').innerHTML = rows.length ? rows.map(r => {
+
+    const label = r.cancelled ? 'Ausfall'
+
+      : r.delay == null ? 'Keine Echtzeitinfo'
+
+      : r.delay > 0 ? '+' + r.delay + ' Min.'
+
+      : 'Pünktlich';
+
+    const cls = r.cancelled ? 'cancel'
+
+      : r.delay == null ? 'unknown'
+
+      : r.delay > 0 ? 'late' : 'ok';
+
+    return `<article class="train">
+
+      <div>
+
+        <div class="time">${escapeHtml(r.planned)}</div>
+
+        <div class="sub">Planmäßige Abfahrt</div>
+
+      </div>
+
+      <div class="middle">
+
+        <div class="line">${escapeHtml(r.line || 'Zug')}
+
+          ${r.platform ? '· Gleis ' + escapeHtml(r.platform) : ''}
+
+        </div>
+
+        <div class="sub">
+
+          ${r.actual && r.actual !== r.planned
+
+            ? 'Prognose: ' + escapeHtml(r.actual)
+
+            : 'Richtung Wien Meidling'}
+
+        </div>
+
+      </div>
+
+      <div class="status ${cls}">${escapeHtml(label)}</div>
+
+    </article>`;
+
+  }).join('') : '<div class="info">Keine Verbindungen für dieses Zeitfenster verfügbar.</div>';
+
+}
+
+function renderDemo() {
+
+  setMsg('DEMO-MODUS: Alle Uhrzeiten, Zugnamen und Verspätungen sind frei erfundene Beispiele.', 'warn');
+
+  $('updated').textContent = 'Demo – keine Live-Abfrage';
+
+  render([
+
+    {planned:'07:08',actual:'07:08',line:'Beispiel S-Bahn',delay:0},
+
+    {planned:'07:28',actual:'07:35',line:'Beispiel REX',delay:7},
+
+    {planned:'07:48',actual:null,line:'Beispiel Zug',delay:null}
+
+  ]);
+
+}
+
+function offsetAt(d) {
+
+  const parts = new Intl.DateTimeFormat('en-GB', {
+
+    timeZone:'Europe/Vienna',
+
+    timeZoneName:'shortOffset'
+
+  }).formatToParts(d);
+
+  const z = parts.find(p => p.type === 'timeZoneName')?.value || 'GMT+1';
+
+  const m = z.match(/GMT([+-])(\d{1,2})(?::(\d{2}))?/);
+
+  return m
+
+    ? m[1] + m[2].padStart(2,'0') + ':' + (m[3] || '00')
+
+    : '+01:00';
+
+}
+
+function startISO() {
+
+  const d = day();
+
+  return d + 'T07:00:00' + offsetAt(new Date(d+'T12:00:00Z'));
+
+}
+
+function keyForDay() {
+
+  return 'oebb-ebreichsdorf-meidling-' + day();
+
+}
+
+function loadSaved() {
+
+  try {
+
+    const a = JSON.parse(localStorage.getItem(keyForDay()) || '[]');
+
+    if (Array.isArray(a)) {
+
+      for (const r of a) {
+
+        if (r.planned) cache.set(r.planned+'|'+r.line, r);
+
+      }
+
+    }
+
+  } catch {}
+
+}
+
+function save() {
+
+  try {
+
+    localStorage.setItem(keyForDay(), JSON.stringify([...cache.values()]));
+
+  } catch {}
+
+}
+
+async function getJSON(url) {
+
+  const controller = new AbortController();
+
+  const timeout = setTimeout(() => controller.abort(), 12000);
+
+  try {
+
+    const res = await fetch(url, {
+
+      signal:controller.signal,
+
+      headers:{Accept:'application/json'}
+
+    });
+
+    if (!res.ok) throw Error('HTTP ' + res.status);
+
+    return await res.json();
+
+  } finally {
+
+    clearTimeout(timeout);
+
+  }
+
+}
+
+function cleanName(s) {
+
+  return String(s || '')
+
+    .toLocaleLowerCase('de-AT')
+
+    .replace(/bahnhof|bf\.?/g, '')
+
+    .trim();
+
+}
+
+async function station(name) {
+
+  const data = await getJSON(
+
+    API + '/locations?query=' + encodeURIComponent(name) + '&results=12'
+
+  );
+
+  if (!Array.isArray(data)) throw Error('Stationssuche fehlgeschlagen');
+
+  const found = data.find(x =>
+
+    cleanName(x.name) === cleanName(name) && x.id
+
+  ) || data.find(x =>
+
+    cleanName(x.name).includes(cleanName(name)) && x.id
+
+  );
+
+  if (!found) throw Error('Station ' + name + ' nicht gefunden');
+
+  return found.id;
+
+}
+
+async function loadLive() {
+
+  if (mode !== 'live') return;
+
+  setMsg('Live-Daten werden abgefragt …');
+
+  loadSaved();
+
+  try {
+
+    const [from,to] = await Promise.all([
+
+      station(ORIGIN), station(DEST)
+
+    ]);
+
+    const params = new URLSearchParams({
+
+      from, to,
+
+      departure:startISO(),
+
+      results:'30',
+
+      transfers:'0'
+
+    });
+
+    const data = await getJSON(API + '/journeys?' + params);
+
+    if (!Array.isArray(data.journeys)) {
+
+      throw Error('Ungültige Antwort des Datenanbieters');
+
+    }
+
+    const rows = [];
+
+    for (const j of data.journeys) {
+
+      const legs = (j.legs || []).filter(l => l.line && l.departure);
+
+      if (legs.length !== 1) continue;
+
+      const l = legs[0];
+
+      if (!cleanName(l.origin?.name).includes(cleanName(ORIGIN)) ||
+
+          !cleanName(l.destination?.name).includes(cleanName(DEST))) continue;
+
+      const plannedISO = l.plannedDeparture || l.departure;
+
+      const n = mins(plannedISO);
+
+      if (n < 420 || n >= 480) continue;
+
+      const delaySec = l.departureDelay;
+
+      const delay = typeof delaySec === 'number'
+
+        ? Math.max(0, Math.round(delaySec/60)) : null;
+
+      rows.push({
+
+        planned:hm(plannedISO),
+
+        actual:hm(l.departure),
+
+        line:l.line?.name || 'Zug',
+
+        platform:l.departurePlatform || l.plannedDeparturePlatform || '',
+
+        delay,
+
+        cancelled:!!l.cancelled
+
+      });
+
+    }
+
+    for (const r of rows) {
+
+      cache.set(r.planned+'|'+r.line, r);
+
+    }
+
+    save();
+
+    render([...cache.values()].sort((a,b) =>
+
+      a.planned.localeCompare(b.planned)
+
+    ));
+
+    $('updated').textContent =
+
+      'Letzte erfolgreiche Abfrage: ' + timeFmt.format(new Date());
+
+    if (rows.length) {
+
+      setMsg('LIVE-MODUS: Daten eines unabhängigen Drittanbieters. ' +
+
+        rows.length + ' Verbindung(en) aktuell geliefert.');
+
+    } else {
+
+      setMsg('Live-Abfrage erfolgreich, aber keine passenden direkten Verbindungen geliefert. Das bedeutet nicht zwingend, dass keine Züge fahren.', 'warn');
+
+    }
+
+  } catch(e) {
+
+    render([...cache.values()].sort((a,b) =>
+
+      a.planned.localeCompare(b.planned)
+
+    ));
+
+    setMsg('LIVE-DATEN NICHT VERFÜGBAR: ' + e.message +
+
+      '. Vorhandene Daten können veraltet sein.', 'err');
+
+    $('updated').textContent =
+
+      'Keine erfolgreiche aktuelle Live-Abfrage';
+
+  }
+
+}
+
+$('demo').onclick = () => switchMode('demo');
+
+$('live').onclick = () => switchMode('live');
+
+$('reload').onclick = () =>
+
+  mode === 'live' ? loadLive() : renderDemo();
+
+switchMode('demo');
+
+</script>
+
+</body>
+
+</html>
